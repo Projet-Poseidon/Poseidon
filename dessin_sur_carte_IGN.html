@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Carte IGN - Export GPX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+  <style>
+    #map { height: 100vh; }
+    .leaflet-control-gpx {
+      background: white;
+      padding: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<script>
+  const API_KEY = "ta_clé_api_geoplateforme";  // Remplace par ta clé API GéoPlateforme
+
+  const map = L.map('map').setView([45.73, 6.73], 13);
+
+  const ignLayer = L.tileLayer(
+    `https://data.geopf.fr/wmts?layer=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&style=normal&tilematrixset=PM&Service=WMTS&Request=GetTile&Version=1.0.0&Format=image/png&TileMatrix={z}&TileCol={x}&TileRow={y}&apikey=${API_KEY}`,
+    {
+      attribution: 'IGN - GéoPlateforme',
+      maxZoom: 18,
+      tileSize: 256
+    }
+  ).addTo(map);
+
+  const drawnItems = new L.FeatureGroup();
+  map.addLayer(drawnItems);
+
+  const drawControl = new L.Control.Draw({
+    draw: {
+      polygon: false,
+      circle: false,
+      rectangle: false,
+      circlemarker: false,
+      polyline: true,
+      marker: true
+    },
+    edit: {
+      featureGroup: drawnItems
+    }
+  });
+  map.addControl(drawControl);
+
+  map.on(L.Draw.Event.CREATED, function (e) {
+    const layer = e.layer;
+
+    if (e.layerType === 'marker') {
+      const name = prompt("Nom du point ?");
+      if (name) {
+        // Assurer que l'objet feature existe
+        layer.feature = layer.feature || { "type": "Feature", "geometry": { "type": "Point", "coordinates": [layer.getLatLng().lng, layer.getLatLng().lat] }, "properties": {} };
+        // Ajouter le nom aux propriétés GeoJSON de la feature
+        layer.feature.properties.name = name;
+        layer.bindPopup(name);
+      }
+    }
+
+    drawnItems.addLayer(layer);
+  });
+
+  // === Bouton de téléchargement GPX ===
+  L.Control.GPXExport = L.Control.extend({
+    onAdd: function(map) {
+      const btn = L.DomUtil.create('button', 'leaflet-control-gpx');
+      btn.innerHTML = "📥 Télécharger GPX";
+      btn.onclick = function() {
+        const gpx = generateGPX(drawnItems.toGeoJSON());
+        const blob = new Blob([gpx], {type: "application/gpx+xml"});
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "trace.gpx";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+      return btn;
+    },
+
+    onRemove: function(map) {}
+  });
+
+  L.control.gpxExport = function(opts) {
+    return new L.Control.GPXExport(opts);
+  }
+
+  L.control.gpxExport({ position: 'bottomright' }).addTo(map);
+
+  // === Fonction de conversion GeoJSON -> GPX
+  function generateGPX(geojson) {
+    const waypoints = [];
+    const tracks = [];
+
+    geojson.features.forEach((f, i) => {
+      if (f.geometry.type === 'Point') {
+        const [lon, lat] = f.geometry.coordinates;
+        // Récupérer le nom depuis les propriétés GeoJSON
+        const name = f.properties && f.properties.name ? f.properties.name : `WP${i+1}`;
+        waypoints.push(`<wpt lat="${lat}" lon="${lon}"><name>${name}</name></wpt>`);
+      }
+      if (f.geometry.type === 'LineString') {
+        const trkpts = f.geometry.coordinates.map(([lon, lat]) =>
+          `<trkpt lat="${lat}" lon="${lon}"></trkpt>`).join("");
+        tracks.push(`<trk><name>Trace ${i+1}</name><trkseg>${trkpts}</trkseg></trk>`);
+      }
+    });
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Carte IGN" xmlns="http://www.topografix.com/GPX/1/1">
+  ${waypoints.join("\n")}
+  ${tracks.join("\n")}
+</gpx>`;
+  }
+</script>
+
+</body>
+</html>
