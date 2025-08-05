@@ -6,7 +6,7 @@ body {
     justify-content: flex-start;
     height: 100vh;
     margin: 0;
-    color: #333; 
+    color: #333;
 
     background-image: url('mon_fond.png');
     background-size: contain;
@@ -112,7 +112,16 @@ body {
     pointer-events: none; /* Empêche les clics sur l'image */
 }
 
-/* Styles pour les poignées de redimensionnement */
+/* Styles pour les poignées de redimensionnement et de rotation */
+.resize-handle, .rotate-handle {
+    display: none;
+}
+
+/* Affichez les poignées uniquement si l'objet parent a la classe 'selected' */
+.selected .resize-handle, .selected .rotate-handle {
+    display: block;
+}
+
 .resize-handle {
     position: absolute;
     width: 12px;
@@ -143,4 +152,39 @@ body {
     bottom: -6px;
     right: -6px;
     cursor: nwse-resize;
+}
+
+.rotate-handle {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 16px;
+    background-color: #007bff;
+    border: 1px solid #000000;
+    border-radius: 50%;
+    cursor: grab;
+    z-index: 1001;
+}
+
+/* Styles pour la sélection */
+.selected {
+    border: 2px dashed rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Pour le conteneur d'image, le clic fait apparaître les poignées */
+.placed-image-container.selected {
+    border: 1px dashed rgba(255, 255, 255, 0.7);
+}
+
+/* Pour les autres formes, on ajoute une bordure visuelle pour la sélection */
+.shape.selected {
+    border: 1px dashed rgba(255, 255, 255, 0.7);
+    padding: 5px; /* Ajoutez un peu d'espace pour la bordure */
+    transform: translate(-50%, -50%);
+}
+
+.arrow-container.selected {
+     border: 1px dashed rgba(255, 255, 255, 0.7);
 }

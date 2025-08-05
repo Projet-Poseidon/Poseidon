@@ -5,203 +5,374 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentMode = shapeSelector.value;
     let shapeCount = 0;
-    let firstClickPoint = null; 
+    let firstClickPoint = null;
 
     let originalImageWidth;
     let originalImageHeight;
 
-    // Variables pour la gestion du redimensionnement
     let isResizing = false;
+    let isDragging = false;
+    let isRotating = false;
     let activeElement = null;
-    let initialX, initialY, initialWidth, initialHeight;
+    let initialX, initialY, initialWidth, initialHeight, initialLeft, initialTop;
+    let resizeHandleClass = '';
+    let ignoreNextClick = false;
 
-    // Créer une balise image pour récupérer les dimensions de l'image de fond
+    let initialAngle = 0;
+    let initialCenter = {};
+    let currentAngle = 0;
+
+    const history = [];
+    const MAX_HISTORY_SIZE = 20;
+
+    function saveState() {
+        const containerHTML = crossContainer.innerHTML;
+        if (history.length >= MAX_HISTORY_SIZE) {
+            history.shift();
+        }
+        history.push(containerHTML);
+    }
+
+    function undo() {
+        if (history.length > 1) {
+            history.pop();
+            const lastState = history[history.length - 1];
+            crossContainer.innerHTML = lastState;
+            attachEventListenersToElements();
+            messageElement.textContent = 'Action annulée.';
+        } else {
+            messageElement.textContent = 'Historique vide. Rien à annuler.';
+        }
+    }
+    saveState();
+
     const imageFond = new Image();
     imageFond.src = 'mon_fond.png';
 
-    // Créer une balise image pour l'image à placer
-    const imageSemparerDe = new Image();
-    imageSemparerDe.src = 'Forme/semparer_de.png';
+    const imageAPlacer = new Image();
+    imageAPlacer.src = 'Forme/semparer_de.png';
 
-    // Désactiver l'option de l'image tant qu'elle n'est pas chargée
     const optionImage = shapeSelector.querySelector('option[value="image"]');
     optionImage.disabled = true;
 
-    imageSemparerDe.onload = () => {
+    imageAPlacer.onload = () => {
         console.log("L'image 'semparer_de.png' a été chargée avec succès.");
-        // Activer l'option une fois que l'image est prête
         optionImage.disabled = false;
     };
-    imageSemparerDe.onerror = () => {
+    imageAPlacer.onerror = () => {
         console.error("Erreur de chargement pour 'semparer_de.png'. Vérifiez le chemin.");
     };
 
     imageFond.onload = () => {
         originalImageWidth = imageFond.naturalWidth;
         originalImageHeight = imageFond.naturalHeight;
-        
-        shapeSelector.addEventListener('change', (event) => {
-            currentMode = event.target.value;
-            firstClickPoint = null;
-            messageElement.textContent = '';
-            if (currentMode === 'arrow') {
-                messageElement.textContent = 'Cliquez pour le point de départ de la flèche.';
-            }
-        });
-    
-        crossContainer.addEventListener('mousedown', (event) => {
-            if (event.target.classList.contains('resize-handle')) {
-                isResizing = true;
-                activeElement = event.target.parentElement;
-                initialX = event.clientX;
-                initialY = event.clientY;
-                initialWidth = activeElement.offsetWidth;
-                initialHeight = activeElement.offsetHeight;
-                event.preventDefault(); // Empêche la sélection de texte
-            }
+    };
+
+    shapeSelector.addEventListener('change', (event) => {
+        currentMode = event.target.value;
+        firstClickPoint = null;
+        messageElement.textContent = '';
+        if (currentMode === 'arrow') {
+            messageElement.textContent = 'Cliquez pour le point de départ de la flèche.';
+        }
+    });
+
+    function selectElement(element) {
+        document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+        if (element) {
+            element.classList.add('selected');
+        }
+    }
+
+    function attachEventListenersToElements() {
+        document.querySelectorAll('.placed-image-container, .shape, .arrow-container').forEach(el => {
+            el.removeEventListener('mousedown', elementMousedownHandler);
         });
 
-        crossContainer.addEventListener('mouseup', () => {
-            isResizing = false;
+        document.querySelectorAll('.placed-image-container, .shape, .arrow-container').forEach(el => {
+            el.addEventListener('mousedown', elementMousedownHandler);
         });
+    }
+
+    function elementMousedownHandler(event) {
+        selectElement(event.currentTarget);
+        activeElement = event.currentTarget;
+        if (event.currentTarget.classList.contains('placed-image-container') || event.currentTarget.classList.contains('arrow-container')) {
+            isDragging = true;
+            initialX = event.clientX;
+            initialY = event.clientY;
+            initialLeft = activeElement.offsetLeft;
+            initialTop = activeElement.offsetTop;
+            activeElement.style.zIndex = '1000';
+            event.preventDefault();
+        }
+    }
+    attachEventListenersToElements();
+    
+    crossContainer.addEventListener('mousedown', (event) => {
+        const target = event.target;
+        if (target.classList.contains('resize-handle')) {
+            isResizing = true;
+            activeElement = target.parentElement;
+            initialX = event.clientX;
+            initialY = event.clientY;
+            initialWidth = activeElement.offsetWidth;
+            initialHeight = activeElement.offsetHeight;
+            initialLeft = activeElement.offsetLeft;
+            initialTop = activeElement.offsetTop;
+            resizeHandleClass = target.classList[1];
+            event.preventDefault();
+            ignoreNextClick = true;
+        } 
+        else if (target.classList.contains('rotate-handle')) {
+            isRotating = true;
+            activeElement = target.parentElement;
+            initialX = event.clientX;
+            initialY = event.clientY;
+            const rect = activeElement.getBoundingClientRect();
+            initialCenter = {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2
+            };
+            // --- CORRECTION : Utilisation de getRotation pour extraire l'angle existant ---
+            initialAngle = getRotation(activeElement);
+            event.preventDefault();
+            ignoreNextClick = true;
+        }
+        else if (target.closest('.placed-image-container') || target.closest('.shape') || target.closest('.arrow-container')) {
+            return;
+        } else {
+            selectElement(null);
+            activeElement = null;
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isResizing || isDragging || isRotating) {
+            saveState();
+            ignoreNextClick = true;
+        }
+        if (activeElement) {
+            activeElement.style.zIndex = '';
+        }
+        isResizing = false;
+        isDragging = false;
+        isRotating = false;
         
-        crossContainer.addEventListener('mousemove', (event) => {
-            if (!isResizing) return;
-            
+        setTimeout(() => {
+            ignoreNextClick = false;
+        }, 100);
+    });
+
+    document.addEventListener('mousemove', (event) => {
+        if (isResizing || isDragging || isRotating) {
+            ignoreNextClick = true;
+        }
+        
+        if (isResizing) {
             const dx = event.clientX - initialX;
             const dy = event.clientY - initialY;
+            let newWidth = initialWidth;
+            let newHeight = initialHeight;
+            let newLeft = initialLeft;
+            let newTop = initialTop;
 
-            // Logique de redimensionnement
-            if (event.target.classList.contains('top-left')) {
-                activeElement.style.width = `${initialWidth - dx}px`;
-                activeElement.style.height = `${initialHeight - dy}px`;
-                activeElement.style.left = `${parseFloat(activeElement.style.left) + dx}px`;
-                activeElement.style.top = `${parseFloat(activeElement.style.top) + dy}px`;
-            } else if (event.target.classList.contains('top-right')) {
-                activeElement.style.width = `${initialWidth + dx}px`;
-                activeElement.style.height = `${initialHeight - dy}px`;
-                activeElement.style.top = `${parseFloat(activeElement.style.top) + dy}px`;
-            } else if (event.target.classList.contains('bottom-left')) {
-                activeElement.style.width = `${initialWidth - dx}px`;
-                activeElement.style.height = `${initialHeight + dy}px`;
-                activeElement.style.left = `${parseFloat(activeElement.style.left) + dx}px`;
-            } else if (event.target.classList.contains('bottom-right')) {
-                activeElement.style.width = `${initialWidth + dx}px`;
-                activeElement.style.height = `${initialHeight + dy}px`;
+            if (resizeHandleClass.includes('left')) {
+                newWidth = initialWidth - dx;
+                newLeft = initialLeft + dx;
+            } else if (resizeHandleClass.includes('right')) {
+                newWidth = initialWidth + dx;
             }
-        });
-
-        crossContainer.addEventListener('click', (event) => {
-            const containerRect = crossContainer.getBoundingClientRect();
-            const x = event.clientX - containerRect.left;
-            const y = event.clientY - containerRect.top;
-    
-            const imageDimensions = getBackgroundImageDimensions();
-            const imgX = imageDimensions.offsetX;
-            const imgY = imageDimensions.offsetY;
-            const imgWidth = imageDimensions.width;
-            const imgHeight = imageDimensions.height;
-    
-            if (x < imgX || x > imgX + imgWidth || y < imgY || y > imgY + imgHeight) {
-                messageElement.textContent = 'Veuillez cliquer sur l\'image.';
-                return;
+            if (resizeHandleClass.includes('top')) {
+                newHeight = initialHeight - dy;
+                newTop = initialTop + dy;
+            } else if (resizeHandleClass.includes('bottom')) {
+                newHeight = initialHeight + dy;
             }
-    
-            if (currentMode === 'arrow') {
-                if (!firstClickPoint) {
-                    firstClickPoint = { x: x, y: y };
-                    messageElement.textContent = 'Cliquez pour le point de départ de la flèche.';
-                } else {
-                    const secondClickPoint = { x: x, y: y };
-                    drawArrow(firstClickPoint, secondClickPoint);
-                    firstClickPoint = null;
-                    shapeCount++;
-                    messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou flèche(s).`;
-                }
-            } else if (currentMode === 'image') {
-                if (imageSemparerDe.complete) {
-                    // Création du conteneur et des poignées pour l'image
-                    const imageContainer = document.createElement('div');
-                    imageContainer.classList.add('placed-image-container');
-                    imageContainer.style.left = `${x}px`;
-                    imageContainer.style.top = `${y}px`;
-                    imageContainer.style.transform = 'translate(-50%, -50%)'; // Centre l'image sur le curseur
-                    imageContainer.style.width = `${imageSemparerDe.naturalWidth}px`;
-                    imageContainer.style.height = `${imageSemparerDe.naturalHeight}px`;
 
-                    const imageElement = document.createElement('img');
-                    imageElement.src = imageSemparerDe.src;
+            activeElement.style.width = `${Math.max(20, newWidth)}px`;
+            activeElement.style.height = `${Math.max(20, newHeight)}px`;
+            activeElement.style.left = `${newLeft}px`;
+            activeElement.style.top = `${newTop}px`;
+        } 
+        else if (isRotating) {
+            const angleRad = Math.atan2(event.clientY - initialCenter.y, event.clientX - initialCenter.x);
+            const initialAngleRad = Math.atan2(initialY - initialCenter.y, initialX - initialCenter.x);
+            const deltaAngle = (angleRad - initialAngleRad) * (180 / Math.PI);
+            currentAngle = initialAngle + deltaAngle;
+            
+            // --- CORRECTION : Combinaison des transformations CSS ---
+            const currentTransform = activeElement.style.transform;
+            let transformParts = currentTransform.split(/\s(?=[\w])/).filter(p => !p.startsWith('rotate'));
+            transformParts.push(`rotate(${currentAngle}deg)`);
+            activeElement.style.transform = transformParts.join(' ');
+        }
+        else if (isDragging) {
+            const dx = event.clientX - initialX;
+            const dy = event.clientY - initialY;
+            activeElement.style.left = `${initialLeft + dx}px`;
+            activeElement.style.top = `${initialTop + dy}px`;
+        }
+    });
 
-                    imageContainer.appendChild(imageElement);
-                    imageContainer.innerHTML += `
-                        <div class="resize-handle top-left"></div>
-                        <div class="resize-handle top-right"></div>
-                        <div class="resize-handle bottom-left"></div>
-                        <div class="resize-handle bottom-right"></div>
-                    `;
+    document.addEventListener('keydown', (event) => {
+        if (event.ctrlKey && event.key === 'z') {
+            event.preventDefault();
+            undo();
+            return;
+        }
+        const selectedElement = document.querySelector('.selected');
+        if (event.key === 'Delete' || event.key === 'Backspace') {
+            if (selectedElement) {
+                selectedElement.remove();
+                messageElement.textContent = 'Élément supprimé.';
+                saveState();
+            }
+        }
+    });
 
-                    crossContainer.appendChild(imageContainer);
-                    shapeCount++;
-                    messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou image(s).`;
-                } else {
-                    messageElement.textContent = 'L\'image n\'est pas encore chargée. Veuillez réessayer.';
-                }
+    crossContainer.addEventListener('click', (event) => {
+        if (ignoreNextClick) {
+            ignoreNextClick = false;
+            return;
+        }
+        
+        if (event.target.closest('.placed-image-container, .shape, .arrow-container')) {
+            const clickedElement = event.target.closest('.placed-image-container, .shape, .arrow-container');
+            selectElement(clickedElement);
+            return;
+        }
+        
+        const containerRect = crossContainer.getBoundingClientRect();
+        const x = event.clientX - containerRect.left;
+        const y = event.clientY - containerRect.top;
+
+        const imageDimensions = getBackgroundImageDimensions();
+        const imgX = imageDimensions.offsetX;
+        const imgY = imageDimensions.offsetY;
+        const imgWidth = imageDimensions.width;
+        const imgHeight = imageDimensions.height;
+
+        if (x < imgX || x > imgX + imgWidth || y < imgY || y > imgY + imgHeight) {
+            messageElement.textContent = 'Veuillez cliquer sur l\'image.';
+            return;
+        }
+
+        selectElement(null);
+
+        if (currentMode === 'arrow') {
+            if (!firstClickPoint) {
+                firstClickPoint = { x: x, y: y };
+                messageElement.textContent = 'Cliquez pour le point d\'arrivée de la flèche.';
             } else {
-                const shapeElement = document.createElement('div');
-                shapeElement.classList.add('shape');
-    
-                if (currentMode === 'cross') {
-                    shapeElement.textContent = '✖';
-                    shapeElement.classList.add('cross');
-                } else if (currentMode === 'circle') {
-                    shapeElement.textContent = '●';
-                    shapeElement.classList.add('circle');
-                }
-    
-                shapeElement.style.left = `${x}px`;
-                shapeElement.style.top = `${y}px`;
-    
-                crossContainer.appendChild(shapeElement);
-    
+                drawArrow(firstClickPoint, { x: x, y: y });
+                firstClickPoint = null;
                 shapeCount++;
                 messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou flèche(s).`;
+                saveState();
             }
-        });
-    
-        function drawArrow(p1, p2) {
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            const length = Math.sqrt(dx * dx + dy * dy);
-            const angle = Math.atan2(dy, dx);
-    
-            const arrowContainer = document.createElement('div');
-            arrowContainer.classList.add('arrow-container');
-            arrowContainer.style.left = `${p1.x}px`;
-            arrowContainer.style.top = `${p1.y}px`;
-            arrowContainer.style.transform = `rotate(${angle}rad)`;
-    
-            const line = document.createElement('div');
-            line.classList.add('arrow-line');
-            line.style.width = `${length}px`;
-    
-            const arrowhead = document.createElement('div');
-            arrowhead.classList.add('arrowhead');
-            arrowhead.textContent = '▶';
-            arrowhead.style.left = `${length}px`;
-    
-            arrowContainer.appendChild(line);
-            arrowContainer.appendChild(arrowhead);
-            crossContainer.appendChild(arrowContainer);
+        } else if (currentMode === 'image') {
+            if (imageAPlacer.complete) {
+                const imageContainer = document.createElement('div');
+                imageContainer.classList.add('placed-image-container');
+                imageContainer.style.left = `${x}px`;
+                imageContainer.style.top = `${y}px`;
+                // --- CORRECTION : Initialisation correcte de la transformation ---
+                imageContainer.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+                imageContainer.style.width = `${imageAPlacer.naturalWidth / 2}px`;
+                imageContainer.style.height = `${imageAPlacer.naturalHeight / 2}px`;
+
+                const imageElement = document.createElement('img');
+                imageElement.src = imageAPlacer.src;
+
+                imageContainer.appendChild(imageElement);
+                imageContainer.innerHTML += `
+                    <div class="resize-handle top-left"></div>
+                    <div class="resize-handle top-right"></div>
+                    <div class="resize-handle bottom-left"></div>
+                    <div class="resize-handle bottom-right"></div>
+                    <div class="rotate-handle"></div>
+                `;
+
+                crossContainer.appendChild(imageContainer);
+                selectElement(imageContainer);
+                shapeCount++;
+                messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou image(s).`;
+                saveState();
+            } else {
+                messageElement.textContent = 'L\'image n\'est pas encore chargée. Veuillez réessayer.';
+            }
+        } else {
+            const shapeElement = document.createElement('div');
+            shapeElement.classList.add('shape');
+
+            if (currentMode === 'cross') {
+                shapeElement.textContent = '✖';
+                shapeElement.classList.add('cross');
+            } else if (currentMode === 'circle') {
+                shapeElement.classList.add('circle');
+                shapeElement.textContent = '●';
+            }
+
+            shapeElement.style.left = `${x}px`;
+            shapeElement.style.top = `${y}px`;
+            // --- CORRECTION : Initialisation correcte de la transformation ---
+            shapeElement.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+
+            crossContainer.appendChild(shapeElement);
+            selectElement(shapeElement);
+            shapeCount++;
+            messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou flèche(s).`;
+            saveState();
         }
-    };
+        attachEventListenersToElements();
+    });
+
+    function drawArrow(p1, p2) {
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const angleRad = Math.atan2(dy, dx);
+        const arrowContainer = document.createElement('div');
+        arrowContainer.classList.add('arrow-container');
+        arrowContainer.style.left = `${p1.x}px`;
+        arrowContainer.style.top = `${p1.y}px`;
+        // --- CORRECTION : Utilisation de la rotation en degrés pour la cohérence ---
+        arrowContainer.style.transform = `rotate(${angleRad * 180 / Math.PI}deg)`;
+
+        const line = document.createElement('div');
+        line.classList.add('arrow-line');
+        line.style.width = `${length}px`;
+
+        const arrowhead = document.createElement('div');
+        arrowhead.classList.add('arrowhead');
+        arrowhead.textContent = '▶';
+        arrowhead.style.left = `${length}px`;
+
+        arrowContainer.appendChild(line);
+        arrowContainer.appendChild(arrowhead);
+        crossContainer.appendChild(arrowContainer);
+        selectElement(arrowContainer);
+    }
     
+    // --- CORRECTION : Fonction utilitaire pour extraire la rotation d'un élément ---
+    function getRotation(element) {
+        const transform = element.style.transform;
+        const match = transform.match(/rotate\(([^)]+)deg\)/);
+        if (match) {
+            return parseFloat(match[1]);
+        }
+        return 0;
+    }
+
     function getBackgroundImageDimensions() {
+        if (!originalImageWidth || !originalImageHeight) {
+            return { width: 0, height: 0, offsetX: 0, offsetY: 0 };
+        }
         const containerRect = crossContainer.getBoundingClientRect();
         const containerRatio = containerRect.width / containerRect.height;
         const imageRatio = originalImageWidth / originalImageHeight;
-
         let renderedWidth, renderedHeight;
-
         if (containerRatio > imageRatio) {
             renderedHeight = containerRect.height;
             renderedWidth = renderedHeight * imageRatio;
@@ -209,10 +380,8 @@ document.addEventListener('DOMContentLoaded', () => {
             renderedWidth = containerRect.width;
             renderedHeight = renderedWidth / imageRatio;
         }
-        
         const offsetX = (containerRect.width - renderedWidth) / 2;
         const offsetY = (containerRect.height - renderedHeight) / 2;
-
         return {
             width: renderedWidth,
             height: renderedHeight,
