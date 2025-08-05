@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentMode = shapeSelector.value;
     let shapeCount = 0;
-    let firstClickPoint = null;
+    let firstClickPoint = null; 
 
     let originalImageWidth;
     let originalImageHeight;
