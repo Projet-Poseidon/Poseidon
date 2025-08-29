@@ -52,8 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageAPlacer = new Image();
     imageAPlacer.src = 'Forme/semparer_de.png';
 
+    const imageNeutraliser = new Image();
+    imageNeutraliser.src = 'Forme/neutraliser.png';
+
     const optionImage = shapeSelector.querySelector('option[value="image"]');
+    const optionNeutraliser = shapeSelector.querySelector('option[value="neutraliser"]');
+
     optionImage.disabled = true;
+    optionNeutraliser.disabled = true;
 
     imageAPlacer.onload = () => {
         console.log("L'image 'semparer_de.png' a été chargée avec succès.");
@@ -63,6 +69,14 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Erreur de chargement pour 'semparer_de.png'. Vérifiez le chemin.");
     };
 
+    imageNeutraliser.onload = () => {
+        console.log("L'image 'neutraliser.png' a été chargée avec succès.");
+        optionNeutraliser.disabled = false;
+    };
+    imageNeutraliser.onerror = () => {
+        console.error("Erreur de chargement pour 'neutraliser.png'. Vérifiez le chemin.");
+    };
+    
     imageFond.onload = () => {
         originalImageWidth = imageFond.naturalWidth;
         originalImageHeight = imageFond.naturalHeight;
@@ -134,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 x: rect.left + rect.width / 2,
                 y: rect.top + rect.height / 2
             };
-            // --- CORRECTION : Utilisation de getRotation pour extraire l'angle existant ---
             initialAngle = getRotation(activeElement);
             event.preventDefault();
             ignoreNextClick = true;
@@ -201,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const deltaAngle = (angleRad - initialAngleRad) * (180 / Math.PI);
             currentAngle = initialAngle + deltaAngle;
             
-            // --- CORRECTION : Combinaison des transformations CSS ---
             const currentTransform = activeElement.style.transform;
             let transformParts = currentTransform.split(/\s(?=[\w])/).filter(p => !p.startsWith('rotate'));
             transformParts.push(`rotate(${currentAngle}deg)`);
@@ -277,7 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 imageContainer.classList.add('placed-image-container');
                 imageContainer.style.left = `${x}px`;
                 imageContainer.style.top = `${y}px`;
-                // --- CORRECTION : Initialisation correcte de la transformation ---
                 imageContainer.style.transform = `translate(-50%, -50%) rotate(0deg)`;
                 imageContainer.style.width = `${imageAPlacer.naturalWidth / 2}px`;
                 imageContainer.style.height = `${imageAPlacer.naturalHeight / 2}px`;
@@ -302,6 +313,35 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 messageElement.textContent = 'L\'image n\'est pas encore chargée. Veuillez réessayer.';
             }
+        } else if (currentMode === 'neutraliser') {
+            if (imageNeutraliser.complete) {
+                const imageContainer = document.createElement('div');
+                imageContainer.classList.add('placed-image-container');
+                imageContainer.style.left = `${x}px`;
+                imageContainer.style.top = `${y}px`;
+                imageContainer.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+                imageContainer.style.width = `${imageNeutraliser.naturalWidth / 2}px`;
+                imageContainer.style.height = `${imageNeutraliser.naturalHeight / 2}px`;
+
+                const imageElement = document.createElement('img');
+                imageElement.src = imageNeutraliser.src;
+
+                imageContainer.appendChild(imageElement);
+                imageContainer.innerHTML += `
+                    <div class="resize-handle top-left"></div>
+                    <div class="resize-handle top-right"></div>
+                    <div class="resize-handle bottom-left"></div>
+                    <div class="resize-handle bottom-right"></div>
+                    <div class="rotate-handle"></div>
+                `;
+                crossContainer.appendChild(imageContainer);
+                selectElement(imageContainer);
+                shapeCount++;
+                messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou image(s).`;
+                saveState();
+            } else {
+                messageElement.textContent = 'L\'image n\'est pas encore chargée. Veuillez réessayer.';
+            }
         } else {
             const shapeElement = document.createElement('div');
             shapeElement.classList.add('shape');
@@ -316,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             shapeElement.style.left = `${x}px`;
             shapeElement.style.top = `${y}px`;
-            // --- CORRECTION : Initialisation correcte de la transformation ---
             shapeElement.style.transform = `translate(-50%, -50%) rotate(0deg)`;
 
             crossContainer.appendChild(shapeElement);
@@ -337,7 +376,6 @@ document.addEventListener('DOMContentLoaded', () => {
         arrowContainer.classList.add('arrow-container');
         arrowContainer.style.left = `${p1.x}px`;
         arrowContainer.style.top = `${p1.y}px`;
-        // --- CORRECTION : Utilisation de la rotation en degrés pour la cohérence ---
         arrowContainer.style.transform = `rotate(${angleRad * 180 / Math.PI}deg)`;
 
         const line = document.createElement('div');
@@ -355,7 +393,6 @@ document.addEventListener('DOMContentLoaded', () => {
         selectElement(arrowContainer);
     }
     
-    // --- CORRECTION : Fonction utilitaire pour extraire la rotation d'un élément ---
     function getRotation(element) {
         const transform = element.style.transform;
         const match = transform.match(/rotate\(([^)]+)deg\)/);
