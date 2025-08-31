@@ -2,6 +2,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const crossContainer = document.getElementById('crossContainer');
     const messageElement = document.getElementById('message');
     const shapeSelector = document.getElementById('shapeSelector');
+    const colorSelector = document.getElementById('colorSelector');
+    // NOUVEAU: Récupérer le bouton et la zone de texte
+    const saveDataButton = document.getElementById('saveDataButton');
+    const dataOutput = document.getElementById('dataOutput');
 
     let currentMode = shapeSelector.value;
     let shapeCount = 0;
@@ -63,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageFond = new Image();
     imageFond.src = 'mon_fond.png';
 
-    // Fonction générique pour charger une image et activer l'option associée
     function loadImageAndEnableOption(imageObject) {
         imageObject.option.disabled = true;
         imageObject.img.onload = () => {
@@ -91,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Fonctions de gestion des éléments ---
+    // --- Fonctions de gestion des événements ---
     function selectElement(element) {
         document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
         if (element) {
@@ -125,19 +128,41 @@ document.addEventListener('DOMContentLoaded', () => {
     attachEventListenersToElements();
     
     // --- Fonctions de placement et de manipulation ---
+    function applyColor(element, color) {
+        if (color === 'red') {
+            element.classList.add('red');
+            element.classList.remove('blue');
+        } else if (color === 'blue') {
+            element.classList.add('blue');
+            element.classList.remove('red');
+        } else {
+            element.classList.remove('red', 'blue');
+        }
+    }
+
     function placeImage(x, y, imageObject) {
         if (!imageObject.img.complete) {
             messageElement.textContent = 'L\'image n\'est pas encore chargée. Veuillez réessayer.';
             return;
         }
+
+        const selectedColor = colorSelector.value;
         
         const imageContainer = document.createElement('div');
         imageContainer.classList.add('placed-image-container');
+        applyColor(imageContainer, selectedColor);
+
         imageContainer.style.left = `${x}px`;
         imageContainer.style.top = `${y}px`;
         imageContainer.style.transform = `translate(-50%, -50%) rotate(0deg)`;
         imageContainer.style.width = `${imageObject.img.naturalWidth / 2}px`;
         imageContainer.style.height = `${imageObject.img.naturalHeight / 2}px`;
+
+        // AJOUT: Stockage des données de l'objet
+        imageContainer.dataset.type = currentMode;
+        imageContainer.dataset.color = selectedColor;
+        imageContainer.dataset.x = x;
+        imageContainer.dataset.y = y;
 
         const imageElement = document.createElement('img');
         imageElement.src = imageObject.img.src;
@@ -177,11 +202,67 @@ document.addEventListener('DOMContentLoaded', () => {
         arrowhead.classList.add('arrowhead');
         arrowhead.textContent = '▶';
         arrowhead.style.left = `${length}px`;
+        
+        const selectedColor = colorSelector.value;
+        if (selectedColor === 'red') {
+             line.style.backgroundColor = '#ff0000';
+             arrowhead.style.color = '#ff0000';
+        } else if (selectedColor === 'blue') {
+             line.style.backgroundColor = '#0000ff';
+             arrowhead.style.color = '#0000ff';
+        } else {
+             line.style.backgroundColor = '#0000ff';
+             arrowhead.style.color = '#0000ff';
+        }
+
+        // AJOUT: Stockage des données de l'objet flèche
+        arrowContainer.dataset.type = currentMode;
+        arrowContainer.dataset.color = selectedColor;
+        arrowContainer.dataset.startx = p1.x;
+        arrowContainer.dataset.starty = p1.y;
+        arrowContainer.dataset.endx = p2.x;
+        arrowContainer.dataset.endy = p2.y;
 
         arrowContainer.appendChild(line);
         arrowContainer.appendChild(arrowhead);
         crossContainer.appendChild(arrowContainer);
         selectElement(arrowContainer);
+    }
+
+    function placeShape(x, y, mode) {
+        const shapeElement = document.createElement('div');
+        shapeElement.classList.add('shape');
+
+        const selectedColor = colorSelector.value;
+        if (selectedColor === 'red') {
+            shapeElement.style.color = '#ff0000';
+        } else if (selectedColor === 'blue') {
+            shapeElement.style.color = '#0000ff';
+        }
+
+        if (mode === 'cross') {
+            shapeElement.textContent = '✖';
+            shapeElement.classList.add('cross');
+        } else if (mode === 'circle') {
+            shapeElement.textContent = '●';
+            shapeElement.classList.add('circle');
+        }
+
+        shapeElement.style.left = `${x}px`;
+        shapeElement.style.top = `${y}px`;
+        shapeElement.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+
+        // AJOUT: Stockage des données de l'objet forme
+        shapeElement.dataset.type = mode;
+        shapeElement.dataset.color = selectedColor;
+        shapeElement.dataset.x = x;
+        shapeElement.dataset.y = y;
+
+        crossContainer.appendChild(shapeElement);
+        selectElement(shapeElement);
+        shapeCount++;
+        messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou flèche(s).`;
+        saveState();
     }
     
     // --- Fonctions de calcul et d'événement ---
@@ -236,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         setTimeout(() => {
             ignoreNextClick = false;
-        }, 0); // Modifié pour un délai de 0ms
+        }, 0);
     });
 
     document.addEventListener('mousemove', (event) => {
@@ -334,7 +415,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         selectElement(null);
 
-        // NOUVEAU: Utilisation de la fonction générique pour placer les images
         if (images[currentMode]) {
             placeImage(x, y, images[currentMode]);
         } else if (currentMode === 'arrow') {
@@ -349,26 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveState();
             }
         } else {
-            const shapeElement = document.createElement('div');
-            shapeElement.classList.add('shape');
-
-            if (currentMode === 'cross') {
-                shapeElement.textContent = '✖';
-                shapeElement.classList.add('cross');
-            } else if (currentMode === 'circle') {
-                shapeElement.classList.add('circle');
-                shapeElement.textContent = '●';
-            }
-
-            shapeElement.style.left = `${x}px`;
-            shapeElement.style.top = `${y}px`;
-            shapeElement.style.transform = `translate(-50%, -50%) rotate(0deg)`;
-
-            crossContainer.appendChild(shapeElement);
-            selectElement(shapeElement);
-            shapeCount++;
-            messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou flèche(s).`;
-            saveState();
+            placeShape(x, y, currentMode);
         }
         attachEventListenersToElements();
     });
@@ -406,4 +467,37 @@ document.addEventListener('DOMContentLoaded', () => {
             offsetY: offsetY
         };
     }
+    
+    // NOUVEAU: Gérer l'événement de clic du bouton de sauvegarde
+    saveDataButton.addEventListener('click', () => {
+        const elements = document.querySelectorAll('.placed-image-container, .shape, .arrow-container');
+        const data = [];
+        elements.forEach(el => {
+            const elType = el.classList.contains('placed-image-container') ? 'image' : (el.classList.contains('arrow-container') ? 'arrow' : 'shape');
+            const elementData = {
+                type: elType,
+                color: el.dataset.color || 'none',
+                // NOUVEAU: Récupérer la rotation et la taille
+                rotation: getRotation(el),
+                width: el.offsetWidth,
+                height: el.offsetHeight
+            };
+            
+            // Collecte des coordonnées spécifiques au type d'objet
+            if (elType === 'image' || elType === 'shape') {
+                elementData.x = el.offsetLeft + el.offsetWidth / 2;
+                elementData.y = el.offsetTop + el.offsetHeight / 2;
+                elementData.subtype = el.dataset.type; // Ex: 'semparer', 'fixer'
+            } else if (elType === 'arrow') {
+                elementData.start = { x: el.dataset.startx, y: el.dataset.starty };
+                elementData.end = { x: el.dataset.endx, y: el.dataset.endy };
+            }
+            data.push(elementData);
+        });
+
+        const jsonOutput = JSON.stringify(data, null, 2);
+        dataOutput.value = jsonOutput;
+        dataOutput.style.display = 'block';
+        messageElement.textContent = 'Données sauvegardées en JSON. Copiez-les depuis la zone de texte.';
+    });
 });
