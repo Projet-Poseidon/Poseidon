@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const history = [];
     const MAX_HISTORY_SIZE = 20;
 
+    // --- Fonctions utilitaires pour l'historique ---
     function saveState() {
         const containerHTML = crossContainer.innerHTML;
         if (history.length >= MAX_HISTORY_SIZE) {
@@ -46,37 +47,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     saveState();
 
+    // --- Définition et chargement des images et des options ---
+    const images = {
+        'semparer': { img: new Image(), option: shapeSelector.querySelector('option[value="semparer"]') },
+        'neutraliser': { img: new Image(), option: shapeSelector.querySelector('option[value="neutraliser"]') },
+        'fixer': { img: new Image(), option: shapeSelector.querySelector('option[value="fixer"]') },
+        'detruire': { img: new Image(), option: shapeSelector.querySelector('option[value="detruire"]') }
+    };
+    
+    images.semparer.img.src = 'Forme/semparer_de.png';
+    images.neutraliser.img.src = 'Forme/neutraliser.png';
+    images.fixer.img.src = 'Forme/fixer.png';
+    images.detruire.img.src = 'Forme/detruire.png';
+
     const imageFond = new Image();
     imageFond.src = 'mon_fond.png';
 
-    const imageAPlacer = new Image();
-    imageAPlacer.src = 'Forme/semparer_de.png';
-
-    const imageNeutraliser = new Image();
-    imageNeutraliser.src = 'Forme/neutraliser.png';
-
-    const optionImage = shapeSelector.querySelector('option[value="image"]');
-    const optionNeutraliser = shapeSelector.querySelector('option[value="neutraliser"]');
-
-    optionImage.disabled = true;
-    optionNeutraliser.disabled = true;
-
-    imageAPlacer.onload = () => {
-        console.log("L'image 'semparer_de.png' a été chargée avec succès.");
-        optionImage.disabled = false;
-    };
-    imageAPlacer.onerror = () => {
-        console.error("Erreur de chargement pour 'semparer_de.png'. Vérifiez le chemin.");
-    };
-
-    imageNeutraliser.onload = () => {
-        console.log("L'image 'neutraliser.png' a été chargée avec succès.");
-        optionNeutraliser.disabled = false;
-    };
-    imageNeutraliser.onerror = () => {
-        console.error("Erreur de chargement pour 'neutraliser.png'. Vérifiez le chemin.");
-    };
+    // Fonction générique pour charger une image et activer l'option associée
+    function loadImageAndEnableOption(imageObject) {
+        imageObject.option.disabled = true;
+        imageObject.img.onload = () => {
+            console.log(`L'image '${imageObject.img.src}' a été chargée avec succès.`);
+            imageObject.option.disabled = false;
+        };
+        imageObject.img.onerror = () => {
+            console.error(`Erreur de chargement pour '${imageObject.img.src}'. Vérifiez le chemin.`);
+        };
+    }
     
+    Object.values(images).forEach(loadImageAndEnableOption);
+
     imageFond.onload = () => {
         originalImageWidth = imageFond.naturalWidth;
         originalImageHeight = imageFond.naturalHeight;
@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Fonctions de gestion des éléments ---
     function selectElement(element) {
         document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
         if (element) {
@@ -123,6 +124,67 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     attachEventListenersToElements();
     
+    // --- Fonctions de placement et de manipulation ---
+    function placeImage(x, y, imageObject) {
+        if (!imageObject.img.complete) {
+            messageElement.textContent = 'L\'image n\'est pas encore chargée. Veuillez réessayer.';
+            return;
+        }
+        
+        const imageContainer = document.createElement('div');
+        imageContainer.classList.add('placed-image-container');
+        imageContainer.style.left = `${x}px`;
+        imageContainer.style.top = `${y}px`;
+        imageContainer.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+        imageContainer.style.width = `${imageObject.img.naturalWidth / 2}px`;
+        imageContainer.style.height = `${imageObject.img.naturalHeight / 2}px`;
+
+        const imageElement = document.createElement('img');
+        imageElement.src = imageObject.img.src;
+        imageContainer.appendChild(imageElement);
+
+        imageContainer.innerHTML += `
+            <div class="resize-handle top-left"></div>
+            <div class="resize-handle top-right"></div>
+            <div class="resize-handle bottom-left"></div>
+            <div class="resize-handle bottom-right"></div>
+            <div class="rotate-handle"></div>
+        `;
+
+        crossContainer.appendChild(imageContainer);
+        selectElement(imageContainer);
+        shapeCount++;
+        messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou image(s).`;
+        saveState();
+    }
+
+    function drawArrow(p1, p2) {
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const angleRad = Math.atan2(dy, dx);
+        const arrowContainer = document.createElement('div');
+        arrowContainer.classList.add('arrow-container');
+        arrowContainer.style.left = `${p1.x}px`;
+        arrowContainer.style.top = `${p1.y}px`;
+        arrowContainer.style.transform = `rotate(${angleRad * 180 / Math.PI}deg)`;
+
+        const line = document.createElement('div');
+        line.classList.add('arrow-line');
+        line.style.width = `${length}px`;
+
+        const arrowhead = document.createElement('div');
+        arrowhead.classList.add('arrowhead');
+        arrowhead.textContent = '▶';
+        arrowhead.style.left = `${length}px`;
+
+        arrowContainer.appendChild(line);
+        arrowContainer.appendChild(arrowhead);
+        crossContainer.appendChild(arrowContainer);
+        selectElement(arrowContainer);
+    }
+    
+    // --- Fonctions de calcul et d'événement ---
     crossContainer.addEventListener('mousedown', (event) => {
         const target = event.target;
         if (target.classList.contains('resize-handle')) {
@@ -174,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         setTimeout(() => {
             ignoreNextClick = false;
-        }, 100);
+        }, 0); // Modifié pour un délai de 0ms
     });
 
     document.addEventListener('mousemove', (event) => {
@@ -272,7 +334,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         selectElement(null);
 
-        if (currentMode === 'arrow') {
+        // NOUVEAU: Utilisation de la fonction générique pour placer les images
+        if (images[currentMode]) {
+            placeImage(x, y, images[currentMode]);
+        } else if (currentMode === 'arrow') {
             if (!firstClickPoint) {
                 firstClickPoint = { x: x, y: y };
                 messageElement.textContent = 'Cliquez pour le point d\'arrivée de la flèche.';
@@ -282,65 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 shapeCount++;
                 messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou flèche(s).`;
                 saveState();
-            }
-        } else if (currentMode === 'image') {
-            if (imageAPlacer.complete) {
-                const imageContainer = document.createElement('div');
-                imageContainer.classList.add('placed-image-container');
-                imageContainer.style.left = `${x}px`;
-                imageContainer.style.top = `${y}px`;
-                imageContainer.style.transform = `translate(-50%, -50%) rotate(0deg)`;
-                imageContainer.style.width = `${imageAPlacer.naturalWidth / 2}px`;
-                imageContainer.style.height = `${imageAPlacer.naturalHeight / 2}px`;
-
-                const imageElement = document.createElement('img');
-                imageElement.src = imageAPlacer.src;
-
-                imageContainer.appendChild(imageElement);
-                imageContainer.innerHTML += `
-                    <div class="resize-handle top-left"></div>
-                    <div class="resize-handle top-right"></div>
-                    <div class="resize-handle bottom-left"></div>
-                    <div class="resize-handle bottom-right"></div>
-                    <div class="rotate-handle"></div>
-                `;
-
-                crossContainer.appendChild(imageContainer);
-                selectElement(imageContainer);
-                shapeCount++;
-                messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou image(s).`;
-                saveState();
-            } else {
-                messageElement.textContent = 'L\'image n\'est pas encore chargée. Veuillez réessayer.';
-            }
-        } else if (currentMode === 'neutraliser') {
-            if (imageNeutraliser.complete) {
-                const imageContainer = document.createElement('div');
-                imageContainer.classList.add('placed-image-container');
-                imageContainer.style.left = `${x}px`;
-                imageContainer.style.top = `${y}px`;
-                imageContainer.style.transform = `translate(-50%, -50%) rotate(0deg)`;
-                imageContainer.style.width = `${imageNeutraliser.naturalWidth / 2}px`;
-                imageContainer.style.height = `${imageNeutraliser.naturalHeight / 2}px`;
-
-                const imageElement = document.createElement('img');
-                imageElement.src = imageNeutraliser.src;
-
-                imageContainer.appendChild(imageElement);
-                imageContainer.innerHTML += `
-                    <div class="resize-handle top-left"></div>
-                    <div class="resize-handle top-right"></div>
-                    <div class="resize-handle bottom-left"></div>
-                    <div class="resize-handle bottom-right"></div>
-                    <div class="rotate-handle"></div>
-                `;
-                crossContainer.appendChild(imageContainer);
-                selectElement(imageContainer);
-                shapeCount++;
-                messageElement.textContent = `Vous avez placé ${shapeCount} forme(s) ou image(s).`;
-                saveState();
-            } else {
-                messageElement.textContent = 'L\'image n\'est pas encore chargée. Veuillez réessayer.';
             }
         } else {
             const shapeElement = document.createElement('div');
@@ -366,32 +372,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         attachEventListenersToElements();
     });
-
-    function drawArrow(p1, p2) {
-        const dx = p2.x - p1.x;
-        const dy = p2.y - p1.y;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        const angleRad = Math.atan2(dy, dx);
-        const arrowContainer = document.createElement('div');
-        arrowContainer.classList.add('arrow-container');
-        arrowContainer.style.left = `${p1.x}px`;
-        arrowContainer.style.top = `${p1.y}px`;
-        arrowContainer.style.transform = `rotate(${angleRad * 180 / Math.PI}deg)`;
-
-        const line = document.createElement('div');
-        line.classList.add('arrow-line');
-        line.style.width = `${length}px`;
-
-        const arrowhead = document.createElement('div');
-        arrowhead.classList.add('arrowhead');
-        arrowhead.textContent = '▶';
-        arrowhead.style.left = `${length}px`;
-
-        arrowContainer.appendChild(line);
-        arrowContainer.appendChild(arrowhead);
-        crossContainer.appendChild(arrowContainer);
-        selectElement(arrowContainer);
-    }
     
     function getRotation(element) {
         const transform = element.style.transform;
