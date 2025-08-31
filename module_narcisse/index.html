@@ -18,10 +18,17 @@
                 <option value="fixer">🛡️ Fixer</option>
                 <option value="detruire">🛡️ Detruire</option>
             </select>
+            <select id="colorSelector" style="margin-top: 10px;">
+                <option value="none">Couleur par défaut</option>
+                <option value="red">Rouge</option>
+                <option value="blue">Bleu</option>
+            </select>
+            <button id="saveDataButton" style="margin-top: 20px;">Sauvegarder les données</button>
         </div> 
         <div id="crossContainer"></div>
     </div>
     <p id="message"></p>
+    <textarea id="dataOutput" style="width: 80%; height: 100px; display: none; margin-top: 10px;"></textarea>
 
     <script src="script.js"></script>
 </body>
