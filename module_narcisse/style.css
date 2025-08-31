@@ -185,6 +185,20 @@ body {
     transform: translate(-50%, -50%);
 }
 
+/* Nouveaux styles pour les couleurs des images */
+.placed-image-container.red img {
+    /* Exemples de filtres à ajuster */
+    filter: sepia(100%) hue-rotate(0deg) saturate(1000%);
+    /* Ces valeurs transforment l'image en rouge. */
+}
+
+.placed-image-container.blue img {
+    /* Exemples de filtres à ajuster */
+    filter: sepia(100%) hue-rotate(180deg) saturate(1000%);
+    /* Ces valeurs transforment l'image en bleu. */
+}
+
+
 .arrow-container.selected {
      border: 1px dashed rgba(255, 255, 255, 0.7);
 }
