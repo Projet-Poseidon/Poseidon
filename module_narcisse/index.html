@@ -24,11 +24,18 @@
                 <option value="blue">Bleu</option>
             </select>
             <button id="saveDataButton" style="margin-top: 20px;">Sauvegarder les données</button>
+            <label for="textInput" style="margin-top: 20px; display: block;">SITUATION:</label>
+            <textarea id="textInput" style="width: 90%; height: 50px; margin-top: 5px;"></textarea>
+            <label for="textInputENI" style="margin-top: 10px; display: block;">SITUATION ENI:</label>
+            <textarea id="textInputENI" style="width: 90%; height: 50px; margin-top: 5px;"></textarea>
+            <label for="textInputDefense" style="margin-top: 10px; display: block;">DÉFENSE DE POSITION:</label>
+            <textarea id="textInputDefense" style="width: 90%; height: 50px; margin-top: 5px;"></textarea>
         </div> 
         <div id="crossContainer"></div>
     </div>
     <p id="message"></p>
-    <textarea id="dataOutput" style="width: 80%; height: 100px; display: none; margin-top: 10px;"></textarea>
+    <label id="dataOutputLabel" for="dataOutput" style="display: none; margin-top: 10px; font-weight: bold;">SITUATION:</label>
+    <textarea id="dataOutput" style="width: 80%; height: 100px; display: none; margin-top: 5px;"></textarea>
 
     <script src="script.js"></script>
 </body>
