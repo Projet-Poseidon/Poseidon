@@ -198,7 +198,6 @@ body {
     /* Ces valeurs transforment l'image en bleu. */
 }
 
-
 .arrow-container.selected {
      border: 1px dashed rgba(255, 255, 255, 0.7);
 }
