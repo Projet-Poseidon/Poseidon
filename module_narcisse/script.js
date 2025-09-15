@@ -3,9 +3,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageElement = document.getElementById('message');
     const shapeSelector = document.getElementById('shapeSelector');
     const colorSelector = document.getElementById('colorSelector');
-    // NOUVEAU: Récupérer le bouton et la zone de texte
     const saveDataButton = document.getElementById('saveDataButton');
     const dataOutput = document.getElementById('dataOutput');
+    const textInput = document.getElementById('textInput');
+    const dataOutputLabel = document.getElementById('dataOutputLabel');
+    const textInputENI = document.getElementById('textInputENI');
+    // NOUVEAU: Récupérer le troisième encart de texte
+    const textInputDefense = document.getElementById('textInputDefense');
 
     let currentMode = shapeSelector.value;
     let shapeCount = 0;
@@ -495,8 +499,17 @@ document.addEventListener('DOMContentLoaded', () => {
             data.push(elementData);
         });
 
-        const jsonOutput = JSON.stringify(data, null, 2);
+        // NOUVEAU: Créer un objet final qui inclut les éléments et les notes
+        const finalData = {
+            notes: textInput.value,
+            notesENI: textInputENI.value,
+            notesDefense: textInputDefense.value,
+            elements: data
+        };
+
+        const jsonOutput = JSON.stringify(finalData, null, 2);
         dataOutput.value = jsonOutput;
+        dataOutputLabel.style.display = 'block';
         dataOutput.style.display = 'block';
         messageElement.textContent = 'Données sauvegardées en JSON. Copiez-les depuis la zone de texte.';
     });
