@@ -5,11 +5,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const colorSelector = document.getElementById('colorSelector');
     const saveDataButton = document.getElementById('saveDataButton');
     const dataOutput = document.getElementById('dataOutput');
-    const textInput = document.getElementById('textInput');
     const dataOutputLabel = document.getElementById('dataOutputLabel');
-    const textInputENI = document.getElementById('textInputENI');
-    // NOUVEAU: Récupérer le troisième encart de texte
-    const textInputDefense = document.getElementById('textInputDefense');
+
+    // Récupération de TOUTES les zones de texte pour la sauvegarde (COLONNE GAUCHE)
+    const textInputENIGlobal = document.getElementById('textInputENIGlobal');
+    const textInputENIInitial = document.getElementById('textInputENIInitial');
+    const textInputENIUlterieur = document.getElementById('textInputENIUlterieur');
+    const textInputENIFutur = document.getElementById('textInputENIFutur');
+    const textInputME1 = document.getElementById('textInputME1'); 
+    const textInputMenaceComplementaire = document.getElementById('textInputMenaceComplementaire'); 
+    const textInputSituationAmi = document.getElementById('textInputSituationAmi'); 
+    const textInputMission = document.getElementById('textInputMission'); 
+    
+    // NOUVEAU: Récupération des trois zones de texte de la COLONNE DROITE
+    const textInputMISSIONSDESUNITESSUBS = document.getElementById('textInputMISSIONSDESUNITESSUBS');
+    const textInputINSTRUCTIONSDECOORDINATIONS = document.getElementById('textInputINSTRUCTIONSDECOORDINATIONS');
+    const textInputADMINISTRATIONETLOGISTIQUE = document.getElementById('textInputADMINISTRATIONETLOGISTIQUE');
+
+    // NOUVEAU: Récupération des trois zones de texte du BAS CENTRAL
+    const textInputNoteA = document.getElementById('textInputNoteA');
+    const textInputNoteB = document.getElementById('textInputNoteB');
+    const textInputNoteC = document.getElementById('textInputNoteC');
 
     let currentMode = shapeSelector.value;
     let shapeCount = 0;
@@ -55,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     saveState();
 
-    // --- Définition et chargement des images et des options ---
+    // --- Définition et chargement des images et des options (inchangé) ---
     const images = {
         'semparer': { img: new Image(), option: shapeSelector.querySelector('option[value="semparer"]') },
         'neutraliser': { img: new Image(), option: shapeSelector.querySelector('option[value="neutraliser"]') },
@@ -98,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Fonctions de gestion des événements ---
+    // --- Fonctions de gestion des événements (inchangé) ---
     function selectElement(element) {
         document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
         if (element) {
@@ -119,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function elementMousedownHandler(event) {
         selectElement(event.currentTarget);
         activeElement = event.currentTarget;
-        if (event.currentTarget.classList.contains('placed-image-container') || event.currentTarget.classList.contains('arrow-container')) {
+        if (event.currentTarget.classList.contains('placed-image-container') || event.currentTarget.classList.contains('arrow-container') || event.currentTarget.classList.contains('shape')) {
             isDragging = true;
             initialX = event.clientX;
             initialY = event.clientY;
@@ -131,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     attachEventListenersToElements();
     
-    // --- Fonctions de placement et de manipulation ---
+    // --- Fonctions de placement et de manipulation (inchangé) ---
     function applyColor(element, color) {
         if (color === 'red') {
             element.classList.add('red');
@@ -162,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
         imageContainer.style.width = `${imageObject.img.naturalWidth / 2}px`;
         imageContainer.style.height = `${imageObject.img.naturalHeight / 2}px`;
 
-        // AJOUT: Stockage des données de l'objet
         imageContainer.dataset.type = currentMode;
         imageContainer.dataset.color = selectedColor;
         imageContainer.dataset.x = x;
@@ -219,7 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
              arrowhead.style.color = '#0000ff';
         }
 
-        // AJOUT: Stockage des données de l'objet flèche
         arrowContainer.dataset.type = currentMode;
         arrowContainer.dataset.color = selectedColor;
         arrowContainer.dataset.startx = p1.x;
@@ -231,6 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         arrowContainer.appendChild(arrowhead);
         crossContainer.appendChild(arrowContainer);
         selectElement(arrowContainer);
+        saveState();
     }
 
     function placeShape(x, y, mode) {
@@ -256,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
         shapeElement.style.top = `${y}px`;
         shapeElement.style.transform = `translate(-50%, -50%) rotate(0deg)`;
 
-        // AJOUT: Stockage des données de l'objet forme
         shapeElement.dataset.type = mode;
         shapeElement.dataset.color = selectedColor;
         shapeElement.dataset.x = x;
@@ -269,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveState();
     }
     
-    // --- Fonctions de calcul et d'événement ---
+    // --- Fonctions de calcul et d'événement (inchangé) ---
     crossContainer.addEventListener('mousedown', (event) => {
         const target = event.target;
         if (target.classList.contains('resize-handle')) {
@@ -472,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
     
-    // NOUVEAU: Gérer l'événement de clic du bouton de sauvegarde
+    // Gérer l'événement de clic du bouton de sauvegarde
     saveDataButton.addEventListener('click', () => {
         const elements = document.querySelectorAll('.placed-image-container, .shape, .arrow-container');
         const data = [];
@@ -481,32 +495,42 @@ document.addEventListener('DOMContentLoaded', () => {
             const elementData = {
                 type: elType,
                 color: el.dataset.color || 'none',
-                // NOUVEAU: Récupérer la rotation et la taille
                 rotation: getRotation(el),
                 width: el.offsetWidth,
                 height: el.offsetHeight
             };
             
-            // Collecte des coordonnées spécifiques au type d'objet
             if (elType === 'image' || elType === 'shape') {
                 elementData.x = el.offsetLeft + el.offsetWidth / 2;
                 elementData.y = el.offsetTop + el.offsetHeight / 2;
-                elementData.subtype = el.dataset.type; // Ex: 'semparer', 'fixer'
+                elementData.subtype = el.dataset.type;
             } else if (elType === 'arrow') {
-                elementData.start = { x: el.dataset.startx, y: el.dataset.starty };
-                elementData.end = { x: el.dataset.endx, y: el.dataset.endy };
+                elementData.start = { x: parseFloat(el.dataset.startx), y: parseFloat(el.dataset.starty) };
+                elementData.end = { x: parseFloat(el.dataset.endx), y: parseFloat(el.dataset.endy) };
             }
             data.push(elementData);
         });
 
-        // NOUVEAU: Créer un objet final qui inclut les éléments et les notes
+        // Mise à jour de l'objet finalData avec toutes les zones de texte (anciennes, colonnes droite et bas)
         const finalData = {
-            notes: textInput.value,
-            notesENI: textInputENI.value,
-            notesDefense: textInputDefense.value,
+            notesArticulation: textInputArticulation.value,
+            notesENIGlobal: textInputENIGlobal.value,
+            notesENIInitial: textInputENIInitial.value,
+            notesENIUlterieur: textInputENIUlterieur.value,
+            notesENIFutur: textInputENIFutur.value,
+            notesME1: textInputME1.value,
+            notesMenaceComplementaire: textInputMenaceComplementaire.value,
+            notesSituationAmi: textInputSituationAmi.value,
+            notesMission: textInputMission.value,
+            notesMISSIONSDESUNITESSUBS: textInputMISSIONSDESUNITESSUBS.value,
+            notesINSTRUCTIONSDECOORDINATIONS: textInputINSTRUCTIONSDECOORDINATIONS.value,
+            notesADMINISTRATIONETLOGISTIQUE: textInputADMINISTRATIONETLOGISTIQUE.value,
+            notesA: textInputT1.value, // NOUVEAU
+            notesB: textInputT2.value, // NOUVEAU
+            notesC: textInputT3.value, // NOUVEAU
             elements: data
         };
-
+        
         const jsonOutput = JSON.stringify(finalData, null, 2);
         dataOutput.value = jsonOutput;
         dataOutputLabel.style.display = 'block';
