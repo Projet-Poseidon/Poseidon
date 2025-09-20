@@ -7,58 +7,197 @@ body {
     height: 100vh;
     margin: 0;
     color: #333;
-
-    background-image: url('mon_fond.png');
-    background-size: contain;
-    background-position: center center;
-    background-repeat: no-repeat;
-    
     overflow: hidden;
+    /* Fond Grisé Partout */
+    background-color: #f0f0f0; 
 }
 
+/* Conteneur principal: gère les 3 colonnes HORIZONTALEMENT */
 #mainContainer {
     display: flex;
     width: 100vw;
     height: 100vh;
-    padding-top: 20px;
+    padding: 0px; 
+    box-sizing: border-box;
+    align-items: flex-start; 
 }
 
+/* ---------------------------------------------------- */
+/* COLONNE 1 : CONTRÔLES (Gauche) */
 #controls {
-    width: 150px;
-    padding: 20px;
-    background-color: rgba(255, 255, 255, 0.8);
+    flex: 0 0 300px;
+    max-width: 400px; 
+    min-width: 200px;
+    padding: 5px;
+    overflow-y: auto; 
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    height: 100vh; 
+    box-sizing: border-box; 
+    margin-right: 0px;
 }
 
-#shapeSelector {
+/* Conteneur pour les sélecteurs de forme et de couleur (pour l'alignement côte à côte) */
+#selectorsContainer {
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 5px; 
+    margin-bottom: 5px; 
+}
+
+#shapeSelector, #colorSelector {
+    flex: 1;
+    min-width: 120px;
+    padding: 8px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.9);
+    box-sizing: border-box;
+    margin-top: 0px !important; 
+}
+
+#controls textarea {
+    width: 100%;
+    height: 40px;
+    box-sizing: border-box;
+    resize: vertical;
+    margin-top: 2px;
+}
+/* ---------------------------------------------------- */
+
+
+/* ---------------------------------------------------- */
+/* COLONNE CENTRALE (Carte + Notes du bas) */
+#centerColumn {
+    flex-grow: 1; 
+    display: flex;
+    flex-direction: column; 
+    height: 100vh; 
+    gap: 5px; 
+    padding: 5px 0; 
+    box-sizing: border-box;
+}
+
+/* COLONNE 2 : CARTE (Centre - Haut) */
+#crossContainer {
+    position: relative;
+    flex-grow: 1; 
+    flex-shrink: 1;
+    
+    border: 2px dashed rgba(0, 0, 0, 0.7);
+    cursor: crosshair;
+    overflow: hidden;
+    background-image: url('mon_fond.png');
+    background-size: contain; 
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-color: rgba(0, 0, 0, 0.2); 
+}
+
+/* Conteneur pour les 3 notes du bas (Centre - Bas) */
+#bottomNotes {
+    display: flex;
+    flex-shrink: 0; 
+    height: 120px;
+    min-height: 120px; 
+    flex-grow: 0; 
+    
+    gap: 5px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.bottomNoteColumn {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; 
+}
+
+.bottomNoteColumn textarea {
+    width: 100%;
+    flex-grow: 1;
+    min-height: 50px;
+    resize: none; 
+}
+/* ---------------------------------------------------- */
+
+
+/* ---------------------------------------------------- */
+/* COLONNE 3 : NOTES COMPLÉMENTAIRES (Droite) */
+#sideNotes {
+    flex: 0 0 250px; 
+    max-width: 350px;
+    min-width: 150px;
+    padding: 5px;
+    overflow-y: auto; 
+    height: 100vh;
+    box-sizing: border-box;
+    display: flex; 
+    flex-direction: column;
+    gap: 3px;
+    margin-left: 0px; 
+}
+
+#sideNotes textarea {
+    width: 100%;
+    height: 140px; 
+    flex-grow: 0; 
+    box-sizing: border-box;
+    resize: vertical;
+    margin-top: 5px;
+}
+/* ---------------------------------------------------- */
+
+/* Styles pour les boutons et labels */
+
+/* Réduction de la police et de l'espacement pour les titres */
+#controls label, #sideNotes label, .bottomNoteColumn label {
+    margin-top: 3px; 
+    margin-bottom: 0px; 
+    display: block;
+    font-weight: bold;
+    font-size: 0.9em; 
+}
+
+#saveDataButton {
     padding: 8px;
     font-size: 1em;
     border: 1px solid #ccc;
     border-radius: 5px;
     background-color: rgba(255, 255, 255, 0.9);
     width: 100%;
+    box-sizing: border-box;
+    /* Ajustement de la marge dans la colonne droite */
+    margin-top: 10px; 
 }
 
-#message {
-    margin-top: 10px;
-    font-size: 1.1em;
-    color: #ffffff;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-    min-height: 20px;
-    position: absolute;
-    bottom: 20px;
+#dataOutputLabel {
+    position: fixed;
+    bottom: 110px;
+    left: 10px;
+    background-color: white;
+    padding: 5px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-#crossContainer {
-    position: relative;
-    flex-grow: 1;
-    border: 2px dashed rgba(255, 255, 255, 0.7);
-    cursor: crosshair;
-    overflow: hidden;
-    background-color: rgba(0, 0, 0, 0.2);
-    margin-left: 20px;
+#dataOutput {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    width: calc(100% - 20px);
+    max-width: 600px;
+    height: 80px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    z-index: 10000;
 }
 
-/* Styles pour les formes existantes */
+
+/* Styles pour les formes et les éléments sur la carte */
 .shape {
     position: absolute;
     font-size: 2em;
@@ -76,7 +215,6 @@ body {
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Styles pour les flèches */
 .arrow-container {
     position: absolute;
     pointer-events: none;
@@ -99,7 +237,6 @@ body {
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Nouveau style pour l'image et son conteneur */
 .placed-image-container {
     position: absolute;
     border: 1px solid transparent;
@@ -109,15 +246,13 @@ body {
 .placed-image-container img {
     width: 100%;
     height: 100%;
-    pointer-events: none; /* Empêche les clics sur l'image */
+    pointer-events: none;
 }
 
-/* Styles pour les poignées de redimensionnement et de rotation */
 .resize-handle, .rotate-handle {
     display: none;
 }
 
-/* Affichez les poignées uniquement si l'objet parent a la classe 'selected' */
 .selected .resize-handle, .selected .rotate-handle {
     display: block;
 }
@@ -168,34 +303,26 @@ body {
     z-index: 1001;
 }
 
-/* Styles pour la sélection */
 .selected {
     border: 2px dashed rgba(255, 255, 255, 0.7) !important;
 }
 
-/* Pour le conteneur d'image, le clic fait apparaître les poignées */
 .placed-image-container.selected {
     border: 1px dashed rgba(255, 255, 255, 0.7);
 }
 
-/* Pour les autres formes, on ajoute une bordure visuelle pour la sélection */
 .shape.selected {
     border: 1px dashed rgba(255, 255, 255, 0.7);
-    padding: 5px; /* Ajoutez un peu d'espace pour la bordure */
+    padding: 5px;
     transform: translate(-50%, -50%);
 }
 
-/* Nouveaux styles pour les couleurs des images */
 .placed-image-container.red img {
-    /* Exemples de filtres à ajuster */
     filter: sepia(100%) hue-rotate(0deg) saturate(1000%);
-    /* Ces valeurs transforment l'image en rouge. */
 }
 
 .placed-image-container.blue img {
-    /* Exemples de filtres à ajuster */
     filter: sepia(100%) hue-rotate(180deg) saturate(1000%);
-    /* Ces valeurs transforment l'image en bleu. */
 }
 
 .arrow-container.selected {
